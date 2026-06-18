@@ -38,13 +38,17 @@ jobs:
         env:
           NODE_ENV: production
 
-      - name: Add .nojekyll
-        run: touch out/.nojekyll
+      - name: Restructure for GitHub Pages
+        run: |
+          mkdir -p deploy/zhiqi
+          cp -r out/* deploy/zhiqi/
+          cp out/404.html deploy/404.html
+          touch deploy/zhiqi/.nojekyll
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./out
+          path: ./deploy
 
   deploy:
     environment:
