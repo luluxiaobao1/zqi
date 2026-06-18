@@ -43,15 +43,28 @@ jobs:
           mkdir -p deploy/zhiqi
           cp -r out/* deploy/zhiqi/
           
-          # CRITICAL: Remove Next.js generated 404.html
-          # It contains client-side routing scripts that cause infinite redirect loops on GitHub Pages
+          # CRITICAL: Remove Next.js generated 404.html (causes redirect loops)
           rm -f deploy/zhiqi/404.html
           rm -rf deploy/zhiqi/404
+          
+          # CRITICAL: Remove Next.js client-side routing scripts from all HTML files
+          # These scripts cause infinite redirect loops on GitHub Pages static hosting
+          # We keep CSS and static assets, but strip the router scripts
+          find deploy/zhiqi -name "*.html" -type f | while read html_file; do
+            # Remove all <script> tags that load Next.js chunks (causes client routing)
+            sed -i '/<script.*src="\/zhiqi\/_next\/static\/chunks\//d' "$html_file"
+            # Remove inline Next.js data scripts (self.__next_f)
+            sed -i '/<script>self\.__next_f/d' "$html_file"
+            # Remove the RSC flight data script tag
+            sed -i '/id="_R_"/d' "$html_file"
+            # Remove nomodule script
+            sed -i '/noModule=""/d' "$html_file"
+          done
           
           # Add .nojekyll to allow _next directory
           touch deploy/zhiqi/.nojekyll
           
-          # Create a simple static 404.html at root level (no JS, no client routing)
+          # Create a simple static 404.html at root level
           cat > deploy/404.html << 'EOF'
           <!DOCTYPE html>
           <html lang="zh-CN">
@@ -85,6 +98,8 @@ jobs:
           ls deploy/zhiqi/ | head -10
           test -f deploy/zhiqi/index.html && echo "✓ index.html 存在" || echo "✗ index.html 不存在"
           test ! -f deploy/zhiqi/404.html && echo "✓ 404.html 已删除" || echo "✗ 404.html 未删除"
+          echo "=== 检查脚本是否已移除 ==="
+          grep -c "script" deploy/zhiqi/index.html || echo "0 scripts remaining"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
