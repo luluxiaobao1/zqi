@@ -32,26 +32,21 @@ jobs:
         env:
           NODE_ENV: production
 
-      - name: Restructure for GitHub Pages
+      - name: Prepare for GitHub Pages
         run: |
-          # Next.js with basePath:'/zhiqi' outputs flat structure:
-          # out/index.html, out/_next/..., out/admin/..., etc.
-          # But resource paths in HTML reference /zhiqi/_next/..., /zhiqi/admin/..., etc.
-          # GitHub Pages URL: https://user.github.io/zhiqi/
-          # So we need: gh-pages/zhiqi/index.html, gh-pages/zhiqi/_next/..., etc.
-          
-          mkdir -p deploy/zhiqi
-          cp -r out/* deploy/zhiqi/
+          # Next.js output: out/index.html, out/_next/..., out/admin/..., etc.
+          # GitHub Pages URL: https://luluxiaobao1.github.io/zhiqi/
+          # Since repo name is "zhiqi", paths like /_next/... resolve correctly.
           
           # Remove Next.js generated 404 (contains client-side routing that causes loops)
-          rm -f deploy/zhiqi/404.html
-          rm -rf deploy/zhiqi/404
+          rm -f out/404.html
+          rm -rf out/404
           
           # Add .nojekyll to allow _next directory
-          touch deploy/zhiqi/.nojekyll
+          touch out/.nojekyll
           
-          # Create custom 404.html at root level
-          cat > deploy/404.html << 'EOF'
+          # Create custom 404.html that redirects to home
+          cat > out/404.html << 'EOF'
           <!DOCTYPE html>
           <html lang="zh-CN">
           <head>
@@ -66,12 +61,11 @@ jobs:
           
           # Verify
           echo "=== 部署结构 ==="
-          ls deploy/
-          ls deploy/zhiqi/ | head -10
-          test -f deploy/zhiqi/index.html && echo "✓ index.html 存在" || echo "✗ index.html 不存在"
+          ls out/ | head -15
+          test -f out/index.html && echo "✓ index.html 存在" || echo "✗ index.html 不存在"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./deploy
+          publish_dir: ./out

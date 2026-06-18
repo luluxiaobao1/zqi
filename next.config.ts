@@ -4,7 +4,8 @@ const nextConfig: NextConfig = {
   // outputFileTracingRoot: path.resolve(__dirname, '../../'),  // Uncomment and add 'import path from "path"' if needed
   /* config options here */
   output: 'export',
-  basePath: '/zhiqi',
+  // basePath is removed - resource paths are rewritten during deploy
+  // basePath: '/zhiqi',
   trailingSlash: true,
   allowedDevOrigins: ['*.dev.coze.site'],
   images: {
