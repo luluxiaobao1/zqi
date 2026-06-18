@@ -1,2 +1,0 @@
-:HL["/zhiqi/_next/static/chunks/a3a576108cbc5402.css","style"]
-0:{"buildId":"Z4Mnn3Iqg-Zcl2cayGXT8","tree":{"name":"","paramType":null,"paramKey":"","hasRuntimePrefetch":false,"slots":{"children":{"name":"console","paramType":null,"paramKey":"console","hasRuntimePrefetch":false,"slots":{"children":{"name":"__PAGE__","paramType":null,"paramKey":"__PAGE__","hasRuntimePrefetch":false,"slots":null,"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":true},"staleTime":300}
