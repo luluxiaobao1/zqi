@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy Next.js Pages
 
 on:
   push:
@@ -6,13 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  contents: write
 
 jobs:
   build:
@@ -33,35 +27,23 @@ jobs:
       - name: Install dependencies
         run: pnpm install --include=dev
 
-      - name: Build Next.js static export
+      - name: Build static export
         run: pnpm next build
         env:
           NODE_ENV: production
 
-      - name: Restructure for GitHub Pages
+      - name: Add .nojekyll to allow _next directory
         run: |
-          # Simply copy the entire out/ directory to deploy/
-          # Next.js with basePath:'/zhiqi' outputs to out/zhiqi/ on CI
-          # So deploy/zhiqi/ will naturally exist with the correct structure
-          mkdir -p deploy
-          cp -r out/. deploy/
-          
-          # If Next.js output was flat (no zhiqi/ subdir), move files into zhiqi/
-          if [ ! -d "deploy/zhiqi" ]; then
-            echo "扁平结构：将文件移入 zhiqi/ 子目录"
-            mkdir -p /tmp/zhiqi-staging
-            mv deploy/* /tmp/zhiqi-staging/ 2>/dev/null || true
-            mkdir -p deploy/zhiqi
-            cp -r /tmp/zhiqi-staging/. deploy/zhiqi/
-            rm -rf /tmp/zhiqi-staging
+          # If Next.js created zhiqi/ subdir, add .nojekyll there
+          if [ -d "out/zhiqi" ]; then
+            touch out/zhiqi/.nojekyll
+          else
+            touch out/.nojekyll
           fi
-          
-          # Remove Next.js generated 404 pages
-          rm -f deploy/zhiqi/404.html
-          rm -rf deploy/zhiqi/404
-          
-          # Create custom 404.html at root level
-          cat > deploy/404.html << 'EOF'
+          # Copy custom 404.html to out root (replacing Next.js generated one)
+          rm -f out/404.html
+          rm -rf out/404
+          cat > out/404.html << 'EOF'
           <!DOCTYPE html>
           <html lang="zh-CN">
           <head>
@@ -73,30 +55,9 @@ jobs:
           </body>
           </html>
           EOF
-          
-          # Add .nojekyll
-          touch deploy/zhiqi/.nojekyll
-          
-          # Final verification
-          echo "=== 最终部署结构 ==="
-          find deploy -maxdepth 2 | sort | head -30
-          echo "=== 关键验证 ==="
-          test -f deploy/zhiqi/index.html && echo "✓ deploy/zhiqi/index.html 存在" || echo "✗ deploy/zhiqi/index.html 不存在！"
-          test ! -d deploy/zhiqi/zhiqi && echo "✓ 无双重嵌套" || echo "✗ 存在双重嵌套！"
-          test -f deploy/404.html && echo "✓ deploy/404.html 存在" || echo "✗ deploy/404.html 不存在！"
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./deploy
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./out
