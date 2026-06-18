@@ -42,7 +42,19 @@ jobs:
         run: |
           mkdir -p deploy/zhiqi
           cp -r out/* deploy/zhiqi/
-          cp out/404.html deploy/404.html
+          # 使用自定义404页面，重定向到/zhiqi/
+          cat > deploy/404.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="zh-CN">
+          <head>
+            <meta charset="UTF-8">
+            <meta http-equiv="refresh" content="0;url=/zhiqi/">
+          </head>
+          <body>
+            <p>Redirecting to <a href="/zhiqi/">home page</a>...</p>
+          </body>
+          </html>
+          EOF
           touch deploy/zhiqi/.nojekyll
 
       - name: Upload artifact
