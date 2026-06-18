@@ -40,33 +40,20 @@ jobs:
 
       - name: Restructure for GitHub Pages
         run: |
-          # The key insight: Next.js 16 with basePath:'/zhiqi' outputs files 
-          # in out/zhiqi/ subdirectory on CI (but flat on some local setups).
-          # We need deploy/zhiqi/index.html to exist at the correct path.
-          #
-          # Strategy: Use rsync to copy the "effective zhiqi content" to deploy/zhiqi/
-          # regardless of whether Next.js outputs flat or nested.
+          # Simply copy the entire out/ directory to deploy/
+          # Next.js with basePath:'/zhiqi' outputs to out/zhiqi/ on CI
+          # So deploy/zhiqi/ will naturally exist with the correct structure
+          mkdir -p deploy
+          cp -r out/. deploy/
           
-          mkdir -p deploy/zhiqi
-          
-          # Step 1: Find where the actual content is
-          if [ -f "out/zhiqi/index.html" ]; then
-            echo "Next.js 输出了 zhiqi/ 子目录结构"
-            SOURCE_DIR="out/zhiqi"
-          else
-            echo "Next.js 输出了扁平结构"
-            SOURCE_DIR="out"
-          fi
-          
-          # Step 2: Copy content to deploy/zhiqi/
-          rsync -a --delete "${SOURCE_DIR}/" deploy/zhiqi/
-          
-          # Step 3: Verify no double nesting
-          if [ -d "deploy/zhiqi/zhiqi" ]; then
-            echo "ERROR: 双重嵌套检测到！正在修复..."
-            rsync -a --delete deploy/zhiqi/zhiqi/ deploy/zhiqi/
-            rm -rf deploy/zhiqi/zhiqi
-            echo "双重嵌套已修复"
+          # If Next.js output was flat (no zhiqi/ subdir), move files into zhiqi/
+          if [ ! -d "deploy/zhiqi" ]; then
+            echo "扁平结构：将文件移入 zhiqi/ 子目录"
+            mkdir -p /tmp/zhiqi-staging
+            mv deploy/* /tmp/zhiqi-staging/ 2>/dev/null || true
+            mkdir -p deploy/zhiqi
+            cp -r /tmp/zhiqi-staging/. deploy/zhiqi/
+            rm -rf /tmp/zhiqi-staging
           fi
           
           # Remove Next.js generated 404 pages
@@ -92,7 +79,7 @@ jobs:
           
           # Final verification
           echo "=== 最终部署结构 ==="
-          find deploy -maxdepth 2 -type f -o -type d | sort | head -30
+          find deploy -maxdepth 2 | sort | head -30
           echo "=== 关键验证 ==="
           test -f deploy/zhiqi/index.html && echo "✓ deploy/zhiqi/index.html 存在" || echo "✗ deploy/zhiqi/index.html 不存在！"
           test ! -d deploy/zhiqi/zhiqi && echo "✓ 无双重嵌套" || echo "✗ 存在双重嵌套！"
