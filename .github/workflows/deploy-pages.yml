@@ -5,6 +5,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# 避免并发部署互相覆盖
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -34,75 +39,56 @@ jobs:
 
       - name: Restructure for GitHub Pages
         run: |
-          # Next.js with basePath:'/zhiqi' outputs:
-          # out/index.html, out/_next/..., out/admin/..., etc.
-          # Resource paths in HTML reference /zhiqi/_next/..., /zhiqi/admin/..., etc.
-          # GitHub Pages URL: https://user.github.io/zhiqi/
-          # We need: deploy/zhiqi/index.html, deploy/zhiqi/_next/..., etc.
-          
+          # Next.js 配置 basePath:'/zhiqi'，导出目录 out/ 内的资源引用均为 /zhiqi/...
+          # GitHub Pages 访问地址为 https://<user>.github.io/zhiqi/
+          # 因此需要把 out/ 的全部内容放到 deploy/zhiqi/ 下。
+          set -euo pipefail
+
+          rm -rf deploy
           mkdir -p deploy/zhiqi
-          cp -r out/* deploy/zhiqi/
-          
-          # CRITICAL: Remove Next.js generated 404.html (causes redirect loops)
-          rm -f deploy/zhiqi/404.html
-          rm -rf deploy/zhiqi/404
-          
-          # CRITICAL: Remove Next.js client-side routing scripts from all HTML files
-          # These scripts cause infinite redirect loops on GitHub Pages static hosting
-          # We keep CSS and static assets, but strip the router scripts
-          find deploy/zhiqi -name "*.html" -type f | while read html_file; do
-            # Remove all <script> tags that load Next.js chunks (causes client routing)
-            sed -i '/<script.*src="\/zhiqi\/_next\/static\/chunks\//d' "$html_file"
-            # Remove inline Next.js data scripts (self.__next_f)
-            sed -i '/<script>self\.__next_f/d' "$html_file"
-            # Remove the RSC flight data script tag
-            sed -i '/id="_R_"/d' "$html_file"
-            # Remove nomodule script
-            sed -i '/noModule=""/d' "$html_file"
-          done
-          
-          # Add .nojekyll to allow _next directory
+
+          # 复制构建产物（保留 Next.js 客户端脚本，确保 SPA 路由与水合正常工作）
+          cp -r out/. deploy/zhiqi/
+
+          # 允许 _next 这类下划线目录被 Pages 提供服务
           touch deploy/zhiqi/.nojekyll
-          
-          # Create a simple static 404.html at root level
-          cat > deploy/404.html << 'EOF'
-          <!DOCTYPE html>
-          <html lang="zh-CN">
-          <head>
-            <meta charset="UTF-8">
-            <meta http-equiv="refresh" content="0;url=/zhiqi/">
-          </head>
-          <body>
-            <p>Redirecting to <a href="/zhiqi/">home page</a>...</p>
-          </body>
-          </html>
-          EOF
-          
-          # Create root index.html that redirects to basePath
+          touch deploy/.nojekyll
+
+          # SPA fallback：把 404 指向应用自身的入口页，由客户端路由接管。
+          # 关键：不要再使用 meta refresh 跳回 /zhiqi/，否则会形成无限重定向循环。
+          # 直接用首页 HTML 作为 404 内容（内含 Next.js 路由脚本，可正确处理深链接）。
+          if [ -f deploy/zhiqi/index.html ]; then
+            cp deploy/zhiqi/index.html deploy/zhiqi/404.html
+          fi
+
+          # 仓库根目录访问 https://<user>.github.io/ 时，给一个跳转到应用的入口页。
+          # 这是仅在根路径触发一次的跳转，不会与 /zhiqi/ 形成循环。
           cat > deploy/index.html << 'EOF'
           <!DOCTYPE html>
           <html lang="zh-CN">
           <head>
             <meta charset="UTF-8">
-            <meta http-equiv="refresh" content="0;url=/zhiqi/">
+            <title>Redirecting…</title>
+            <script>location.replace('/zhiqi/');</script>
+            <noscript><meta http-equiv="refresh" content="0;url=/zhiqi/"></noscript>
           </head>
           <body>
-            <p>Redirecting to <a href="/zhiqi/">application</a>...</p>
+            <p>Redirecting to <a href="/zhiqi/">application</a>…</p>
           </body>
           </html>
           EOF
-          
-          # Verify
-          echo "=== 部署结构 ==="
-          ls deploy/
-          ls deploy/zhiqi/ | head -10
-          test -f deploy/zhiqi/index.html && echo "✓ index.html 存在" || echo "✗ index.html 不存在"
-          test ! -f deploy/zhiqi/404.html && echo "✓ 404.html 已删除" || echo "✗ 404.html 未删除"
-          echo "=== 检查脚本是否已移除 ==="
-          grep -c "script" deploy/zhiqi/index.html || echo "0 scripts remaining"
+
+          # 校验输出结构
+          echo "=== deploy 根目录 ==="
+          ls -la deploy/
+          echo "=== deploy/zhiqi 目录 ==="
+          ls -la deploy/zhiqi/ | head -20
+          test -f deploy/zhiqi/index.html && echo "✓ /zhiqi/index.html 存在" || (echo "✗ 缺少 index.html" && exit 1)
+          test -d deploy/zhiqi/login && echo "✓ /zhiqi/login/ 目录存在（trailingSlash 生效）" || echo "⚠ 未发现 login 目录，请检查 trailingSlash 配置"
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./deploy
+          force_orphan: true
