@@ -37,58 +37,37 @@ jobs:
         env:
           NODE_ENV: production
 
-      - name: Restructure for GitHub Pages
+      - name: Prepare for GitHub Pages
         run: |
-          # Next.js 配置 basePath:'/zhiqi'，导出目录 out/ 内的资源引用均为 /zhiqi/...
-          # GitHub Pages 访问地址为 https://<user>.github.io/zhiqi/
-          # 因此需要把 out/ 的全部内容放到 deploy/zhiqi/ 下。
+          # GitHub Pages 站点根即为 https://<user>.github.io/zhiqi/
+          # Next.js 已配置 basePath:'/zhiqi'，out/ 内资源均引用 /zhiqi/...
+          # 因此 out/ 的内容应「直接」作为发布根，绝对不能再额外包一层 zhiqi/，
+          # 否则真实内容会落到 /zhiqi/zhiqi/，而 /zhiqi/ 命中跳转页造成死循环。
           set -euo pipefail
 
-          rm -rf deploy
-          mkdir -p deploy/zhiqi
+          # 允许 _next 等下划线目录被 Pages 提供服务
+          touch out/.nojekyll
 
-          # 复制构建产物（保留 Next.js 客户端脚本，确保 SPA 路由与水合正常工作）
-          cp -r out/. deploy/zhiqi/
-
-          # 允许 _next 这类下划线目录被 Pages 提供服务
-          touch deploy/zhiqi/.nojekyll
-          touch deploy/.nojekyll
-
-          # SPA fallback：把 404 指向应用自身的入口页，由客户端路由接管。
-          # 关键：不要再使用 meta refresh 跳回 /zhiqi/，否则会形成无限重定向循环。
-          # 直接用首页 HTML 作为 404 内容（内含 Next.js 路由脚本，可正确处理深链接）。
-          if [ -f deploy/zhiqi/index.html ]; then
-            cp deploy/zhiqi/index.html deploy/zhiqi/404.html
+          # SPA fallback：用首页 HTML 作为 404，由客户端路由接管深链接。
+          # 关键：不要用 meta refresh 跳回自身，否则形成无限重定向循环。
+          if [ -f out/index.html ]; then
+            cp out/index.html out/404.html
           fi
 
-          # 仓库根目录访问 https://<user>.github.io/ 时，给一个跳转到应用的入口页。
-          # 这是仅在根路径触发一次的跳转，不会与 /zhiqi/ 形成循环。
-          cat > deploy/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html lang="zh-CN">
-          <head>
-            <meta charset="UTF-8">
-            <title>Redirecting…</title>
-            <script>location.replace('/zhiqi/');</script>
-            <noscript><meta http-equiv="refresh" content="0;url=/zhiqi/"></noscript>
-          </head>
-          <body>
-            <p>Redirecting to <a href="/zhiqi/">application</a>…</p>
-          </body>
-          </html>
-          EOF
-
-          # 校验输出结构
-          echo "=== deploy 根目录 ==="
-          ls -la deploy/
-          echo "=== deploy/zhiqi 目录 ==="
-          ls -la deploy/zhiqi/ | head -20
-          test -f deploy/zhiqi/index.html && echo "✓ /zhiqi/index.html 存在" || (echo "✗ 缺少 index.html" && exit 1)
-          test -d deploy/zhiqi/login && echo "✓ /zhiqi/login/ 目录存在（trailingSlash 生效）" || echo "⚠ 未发现 login 目录，请检查 trailingSlash 配置"
+          echo "=== 发布根目录 (out/) ==="
+          ls -la out/ | head -25
+          test -f out/index.html && echo "✓ index.html 存在" || (echo "✗ 缺少 index.html" && exit 1)
+          test -d out/login && echo "✓ login/ 目录存在（trailingSlash 生效）" || echo "⚠ 未发现 login 目录"
+          echo "=== 确认 index.html 是应用首页而非跳转页 ==="
+          if grep -q "location.replace" out/index.html; then
+            echo "✗ index.html 仍是跳转页，部署会死循环" && exit 1
+          else
+            echo "✓ index.html 是真实应用首页"
+          fi
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./deploy
+          publish_dir: ./out
           force_orphan: true
