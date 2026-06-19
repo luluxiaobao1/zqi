@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { navigateTo } from "@/lib/navigation";
 
 import {
     ChevronDown,
@@ -173,7 +174,7 @@ export default function ResourceGroupPage() {
     const handleLogout = () => {
         localStorage.removeItem('zhiqi_logged_in');
         localStorage.removeItem('zhiqi_user_info');
-        window.location.href = '/zhiqi/';
+        navigateTo('/');
     };
 
     // 过滤资源组

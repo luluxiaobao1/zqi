@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { withBasePath, navigateTo, openInNewTab } from "@/lib/navigation";
 import {
     Search,
     ChevronDown,
@@ -643,7 +644,7 @@ function EnterpriseAdminContent() {
         const isLoggedIn = localStorage.getItem('zhiqi_logged_in');
         if (!isLoggedIn) {
             // 未登录，跳转到登录页
-            window.location.href = '/zhiqi/login';
+            navigateTo('/login');
             return;
         }
         const userInfoStr = localStorage.getItem('zhiqi_user_info');
@@ -1246,7 +1247,7 @@ function EnterpriseAdminContent() {
         setUserMenuOpen(false);
         localStorage.removeItem('zhiqi_logged_in');
         localStorage.removeItem('zhiqi_user_info');
-        window.location.href = '/zhiqi/';
+        navigateTo('/');
     };
 
     // 切换企业
@@ -1390,7 +1391,7 @@ function EnterpriseAdminContent() {
                     {/* 费用按钮 - 只有主账号和企业管理员可见 */}
                     {(currentUserRole === 'owner' || currentUserRole === 'admin') && (
                         <a
-                            href="/zhiqi/console/cost"
+                            href={withBasePath('/console/cost')}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700">费用
@@ -1445,7 +1446,7 @@ function EnterpriseAdminContent() {
                                         <button
                                             onClick={() => {
                                                 setUserMenuOpen(false);
-                                                window.open('/console/organization', '_blank');
+                                                openInNewTab('/console/organization');
                                             }}
                                             className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 w-full text-left"
                                         >

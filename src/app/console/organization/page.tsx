@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { withBasePath, navigateTo, openInNewTab } from "@/lib/navigation";
 
 import {
     User,
@@ -255,7 +256,7 @@ export default function OrganizationPage() {
     const handleLogout = () => {
         localStorage.removeItem('zhiqi_logged_in');
         localStorage.removeItem('zhiqi_user_info');
-        window.location.href = '/zhiqi/';
+        navigateTo('/');
     };
 
     // 切换组织节点展开状态
@@ -804,7 +805,7 @@ export default function OrganizationPage() {
                 <div className="flex items-center">
                     {/* 功能入口 */}
                     <a
-                        href="/zhiqi/console/cost"
+                        href={withBasePath('/console/cost')}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700">费用
@@ -849,7 +850,7 @@ export default function OrganizationPage() {
                                     <button
                                         onClick={() => {
                                             setUserMenuOpen(false);
-                                            window.open('/console/organization', '_blank');
+                                            openInNewTab('/console/organization');
                                         }}
                                         className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 w-full text-left"
                                     >

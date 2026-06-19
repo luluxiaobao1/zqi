@@ -25,9 +25,10 @@ import {
     Settings,
     Phone,
 } from "lucide-react";
+import { withBasePath } from "@/lib/navigation";
 
 // 企业入口页面地址
-const ENTERPRISE_URL = "/zhiqi/console";
+const ENTERPRISE_URL = withBasePath("/console");
 
 export default function ZhiqiOfficialPage() {
     const router = useRouter();

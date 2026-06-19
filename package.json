@@ -7,6 +7,7 @@
     "dev": "bash ./scripts/dev.sh",
     "preinstall": "npx only-allow pnpm",
     "lint": "eslint",
+    "preview:pages": "bash ./scripts/preview-pages.sh",
     "start": "bash ./scripts/start.sh",
     "ts-check": "tsc -p tsconfig.json"
   },

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { withBasePath, navigateTo, openInNewTab } from "@/lib/navigation";
 import {
     LineChart,
     Line,
@@ -997,7 +998,7 @@ function EnterprisePageContent() {
         const isLoggedIn = localStorage.getItem('zhiqi_logged_in');
         if (!isLoggedIn) {
             // 未登录，跳转到登录页
-            window.location.href = '/zhiqi/login';
+            navigateTo('/login');
             return;
         }
         const userInfoStr = localStorage.getItem('zhiqi_user_info');
@@ -1028,7 +1029,7 @@ function EnterprisePageContent() {
         localStorage.removeItem('zhiqi_logged_in');
         localStorage.removeItem('zhiqi_user_info');
         // 跳转到智企官网页面
-        window.location.href = '/zhiqi/';
+        navigateTo('/');
     };
 
     // 切换企业时检查当前菜单是否可见
@@ -1499,7 +1500,7 @@ function EnterprisePageContent() {
                         <span className="text-sm text-amber-800">可在管理后台授权企业成员使用，支持给每个成员设置消费限额</span>
                     </div>
                     <button 
-                        onClick={() => window.open('/admin?tab=members', '_blank')}
+                        onClick={() => openInNewTab('/admin', { tab: 'members' })}
                         className="px-3 py-1 bg-amber-500 text-white text-sm rounded hover:bg-amber-600 transition-colors"
                     >
                         去设置
@@ -2054,7 +2055,7 @@ function EnterprisePageContent() {
                                                 您的配额已用尽，为了避免影响使用，请尽快
                                                 <button 
                                                     onClick={() => {
-                                                        window.open('/admin?tab=members', '_blank');
+                                                        openInNewTab('/admin', { tab: 'members' });
                                                     }}
                                                     className="text-blue-600 hover:text-blue-700 font-medium"
                                                 >
@@ -2442,7 +2443,7 @@ function EnterprisePageContent() {
                     {/* 功能入口 */}
                     {/* 费用按钮 - 所有角色可见 */}
                     <a
-                        href="/zhiqi/console/cost"
+                        href={withBasePath('/console/cost')}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700">费用
@@ -2494,7 +2495,7 @@ function EnterprisePageContent() {
                                         <button
                                             onClick={() => {
                                                 setUserMenuOpen(false);
-                                                window.open('/console/organization', '_blank');
+                                                openInNewTab('/console/organization');
                                             }}
                                             className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 w-full text-left"
                                         >
@@ -2527,7 +2528,7 @@ function EnterprisePageContent() {
                                 <button
                                     key={item.name}
                                     onClick={() => {
-                                        window.open(window.location.origin + '/admin', '_blank');
+                                        openInNewTab('/admin');
                                     }}
                                     className={`flex items-center px-3 py-2.5 rounded-md mb-1 transition-colors w-full ${activeMenu === item.name ? "bg-gray-100 text-gray-900 font-medium" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}>
                                     <item.icon className={`w-5 h-5 ${sidebarCollapsed ? "mx-auto" : "mr-3"}`} />
@@ -4989,7 +4990,7 @@ function EnterprisePageContent() {
                                 <button
                                     onClick={() => {
                                         setQuotaInsufficientDialogOpen(false);
-                                        window.open('/admin?tab=members', '_blank');
+                                        openInNewTab('/admin', { tab: 'members' });
                                     }}
                                     className="px-4 py-2 text-sm text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors"
                                 >

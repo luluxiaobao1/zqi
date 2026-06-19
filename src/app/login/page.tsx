@@ -11,9 +11,10 @@ import {
     Phone,
     Check,
 } from "lucide-react";
+import { withBasePath } from "@/lib/navigation";
 
 // 企业入口页面地址
-const ENTERPRISE_URL = "/zhiqi/console";
+const ENTERPRISE_URL = withBasePath("/console");
 
 // 测试账号列表
 const TEST_ACCOUNTS = [
